@@ -37,6 +37,7 @@ var mongoWriteDb *mongo.Database
 var mongoWriteClient *mongo.Client
 var ctx context.Context
 
+// Create a Read and Write connection to the database
 func connectDb() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -67,6 +68,7 @@ func connectDb() {
 	log.Print("DB Connected")
 }
 
+// Get a single domain record from the database
 func getDomain(domain string) domainEntry {
 	var domainResult domainEntry
 	domainsCollection := mongoReadDb.Collection("domains")
@@ -103,6 +105,10 @@ func processPut(item queueEntry) {
 		domainEntry.BouncedCount++
 	case "delivered":
 		domainEntry.DeliveredCount++
+	default:
+		// We shouldn't really get here but if we do, don't do anything with a DB record
+		log.Print("action {} not implemented", item.action)
+		return
 	}
 	if !newEntry {
 		update := bson.M{
