@@ -8,9 +8,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // This is a structure for the format of an update entry in the queue
@@ -27,51 +24,12 @@ type domainEntry struct {
 	BouncedCount int `bson:"bouncedCount,omitempty"`
 }
 
-// We are creating a different client for reads and writes
-// This is done in case we need the application to connect to different
-//  infrastructure for example to read from a local cache and write to
-//  a more central instance
-var mongoReadDb *mongo.Database
-var mongoReadClient *mongo.Client
-var mongoWriteDb *mongo.Database
-var mongoWriteClient *mongo.Client
-var ctx context.Context
-
-// Create a Read and Write connection to the database
-func connectDb() {
+// Get a single domain record from the database
+func (a *App) getDomain(domain string) domainEntry {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	mongoWriteClient, err := mongo.Connect(ctx, options.Client().ApplyURI(
-		"mongodb+srv://administrator:5VhVTxQb272kMsm@cluster0.k6tho.mongodb.net/domain-checker?retryWrites=true&w=majority",
-	))
-	if err != nil { 
-		log.Fatal(err)
-	}
-	err = mongoWriteClient.Ping(ctx, readpref.Primary())
-	if err != nil {
-		log.Fatal(err)
-	}
-	mongoWriteDb = mongoWriteClient.Database("domain-checker")
-
-	mongoReadClient, err := mongo.Connect(ctx, options.Client().ApplyURI(
-		"mongodb+srv://administrator:5VhVTxQb272kMsm@cluster0.k6tho.mongodb.net/domain-checker?retryWrites=true&w=majority",
-	))
-	if err != nil { 
-		log.Fatal(err)
-	}
-	err = mongoReadClient.Ping(ctx, readpref.Primary())
-	if err != nil {
-		log.Fatal(err)
-	}
-	mongoReadDb = mongoReadClient.Database("domain-checker")
-	log.Print("DB Connected")
-}
-
-// Get a single domain record from the database
-func getDomain(domain string) domainEntry {
 	var domainResult domainEntry
-	domainsCollection := mongoReadDb.Collection("domains")
+	domainsCollection := a.ReadClient.Database("domain-checker").Collection("domains")
 	// If we got an error, it could be because there isn't a document with that domain created yet.
 	// Set up a new domainEntry with a specific count for delivered and bounced so the DB code
 	//  knows if this is an insert new instead of update existing.
@@ -88,10 +46,12 @@ func getDomain(domain string) domainEntry {
 }
 
 // Do the update/insert of a count increase for a domain
-func processPut(item queueEntry) {
+func (a *App) processPut(item queueEntry) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	log.Print(item)
 	var newEntry = false
-	domainEntry := getDomain(item.domain)
+	domainEntry := a.getDomain(item.domain)
 	// If the counts are -1, then the domain didn't already exist in the database
 	// Set a flag so we know this is a new record and not an update to an
 	//  existing record
@@ -114,7 +74,7 @@ func processPut(item queueEntry) {
 		update := bson.M{
 			"$set": domainEntry,
 		}
-		result, err := mongoWriteDb.Collection("domains").UpdateOne(
+		result, err := a.WriteClient.Database("domain-checker").Collection("domains").UpdateOne(
 			ctx,
 			bson.M{"_id": domainEntry.ID},
 			update,
@@ -124,7 +84,7 @@ func processPut(item queueEntry) {
 		}
 		log.Print(result)
 	} else {
-		result, err := mongoWriteDb.Collection("domains").InsertOne(
+		result, err := a.WriteClient.Database("domain-checker").Collection("domains").InsertOne(
 			ctx,
 			domainEntry,
 		)

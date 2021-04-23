@@ -12,7 +12,7 @@ var queue = list.New()
 
 // This function is expected to be launched in its own go routine (thread)
 // It will monitor the queue and process queue entries as they arrive
-func queueProcessor() {
+func (a *App) queueProcessor() {
 	log.Print("Starting queue processor")
 	for {
 		// If the queue is empty wait a second
@@ -22,7 +22,7 @@ func queueProcessor() {
 			continue
 		}
 		item := queue.Front()
-		processPut(queueEntry(item.Value.(queueEntry)))
+		a.processPut(queueEntry(item.Value.(queueEntry)))
 		queue.Remove(item)
 	}
 }
