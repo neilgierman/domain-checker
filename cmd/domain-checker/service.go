@@ -20,7 +20,7 @@ func (a *App) queueDelivered(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	requestedDomain := vars["domain"]
 	entry := queueEntry{action: "delivered", domain: requestedDomain}
-	queue.PushBack(entry)
+	a.Queue.PushBack(entry)
 	w.WriteHeader(http.StatusAccepted)
 }
 
@@ -29,7 +29,7 @@ func (a *App) queueBounced(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	requestedDomain := vars["domain"]
 	entry := queueEntry{action: "bounced", domain: requestedDomain}
-	queue.PushBack(entry)
+	a.Queue.PushBack(entry)
 	w.WriteHeader(http.StatusAccepted)
 }
 

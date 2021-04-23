@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/list"
 	"context"
 	"log"
 	"net/http"
@@ -17,6 +18,9 @@ type App struct {
 	Router *mux.Router
 	ReadClient *mongo.Client
 	WriteClient *mongo.Client
+	ReadDb *mongo.Database
+	WriteDb *mongo.Database
+	Queue *list.List
 }
 
 func (a *App) Initialize(user, password, host, database string) {
@@ -37,6 +41,7 @@ func (a *App) Initialize(user, password, host, database string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	a.WriteDb = a.WriteClient.Database(database)
 	
 	a.ReadClient, err = mongo.Connect(ctx, options.Client().ApplyURI(
 		"mongodb+srv://" + user + ":" + password + "@" + host + "/" + database + "?retryWrites=true&w=majority",
@@ -48,8 +53,10 @@ func (a *App) Initialize(user, password, host, database string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	a.ReadDb = a.ReadClient.Database(database)
 	log.Print("DB Connected")
 
+	a.Queue = list.New()
 	a.handleRequests()
 }
 
