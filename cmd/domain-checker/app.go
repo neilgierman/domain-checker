@@ -1,7 +1,6 @@
 package main
 
 import (
-	"container/list"
 	"context"
 	"log"
 	"net/http"
@@ -20,10 +19,10 @@ type App struct {
 	WriteClient *mongo.Client
 	ReadDb *mongo.Database
 	WriteDb *mongo.Database
-	Queue *list.List
+	Cfg *Config
 }
 
-func (a *App) Initialize(user, password, host, database string) {
+func (a *App) Initialize(host, port, database string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	// We are creating a different client for reads and writes
@@ -32,7 +31,7 @@ func (a *App) Initialize(user, password, host, database string) {
 	//  a more central instance
 	var err error
 	a.WriteClient, err = mongo.Connect(ctx, options.Client().ApplyURI(
-		"mongodb+srv://" + user + ":" + password + "@" + host + "/" + database + "?retryWrites=true&w=majority",
+		"mongodb://" + host + ":" + port,
 	))
 	if err != nil { 
 		log.Fatal(err)
@@ -44,7 +43,7 @@ func (a *App) Initialize(user, password, host, database string) {
 	a.WriteDb = a.WriteClient.Database(database)
 	
 	a.ReadClient, err = mongo.Connect(ctx, options.Client().ApplyURI(
-		"mongodb+srv://" + user + ":" + password + "@" + host + "/" + database + "?retryWrites=true&w=majority",
+		"mongodb://" + host + ":" + port,
 	))
 	if err != nil { 
 		log.Fatal(err)
@@ -56,7 +55,6 @@ func (a *App) Initialize(user, password, host, database string) {
 	a.ReadDb = a.ReadClient.Database(database)
 	log.Print("DB Connected")
 
-	a.Queue = list.New()
 	a.handleRequests()
 }
 

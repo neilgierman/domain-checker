@@ -10,7 +10,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	a := App{}
-	a.Initialize("administrator","5VhVTxQb272kMsm","cluster0.k6tho.mongodb.net","domain-checker")
+	a.loadConfig()
+	a.Initialize(a.Cfg.Database.Host, a.Cfg.Database.Port, a.Cfg.Database.Database)
 	go a.queueProcessor()
 	a.handleRequests()
 	a.Run()

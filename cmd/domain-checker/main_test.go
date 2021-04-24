@@ -15,7 +15,8 @@ import (
 var a App
 
 func TestMain(m *testing.M) {
-	a.Initialize("administrator","5VhVTxQb272kMsm","cluster0.k6tho.mongodb.net","domain-checker-test")
+	a.loadConfig()
+	a.Initialize(a.Cfg.Database.Host,a.Cfg.Database.Port,a.Cfg.Database.Database + "-test")
 	go a.queueProcessor()
 	code := m.Run()
 	clearCollection()
@@ -91,13 +92,6 @@ func TestBounceAndReport(t *testing.T) {
 	resp := executeRequest(req)
 	checkResponseCode(t, http.StatusAccepted, resp.Code)
 	time.Sleep(2 * time.Second)
-	for {
-		if a.Queue.Len() > 0 {
-			time.Sleep(1 * time.Second)
-		} else {
-			break
-		}
-	}
 	req, _ = http.NewRequest("GET", "/domains/example.com", nil)
 	resp = executeRequest(req)
 	checkResponseCode(t, http.StatusOK, resp.Code)
@@ -114,13 +108,6 @@ func TestNoBounceAndReport(t *testing.T) {
 	resp := executeRequest(req)
 	checkResponseCode(t, http.StatusAccepted, resp.Code)
 	time.Sleep(2 * time.Second)
-	for {
-		if a.Queue.Len() > 0 {
-			time.Sleep(1 * time.Second)
-		} else {
-			break
-		}
-	}
 	req, _ = http.NewRequest("GET", "/domains/example.com", nil)
 	resp = executeRequest(req)
 	checkResponseCode(t, http.StatusOK, resp.Code)
@@ -136,13 +123,6 @@ func TestFirstEntryAndReport(t *testing.T) {
 	resp := executeRequest(req)
 	checkResponseCode(t, http.StatusAccepted, resp.Code)
 	time.Sleep(2 * time.Second)
-	for {
-		if a.Queue.Len() > 0 {
-			time.Sleep(1 * time.Second)
-		} else {
-			break
-		}
-	}
 	req, _ = http.NewRequest("GET", "/domains/example.com", nil)
 	resp = executeRequest(req)
 	checkResponseCode(t, http.StatusOK, resp.Code)

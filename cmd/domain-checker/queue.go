@@ -9,7 +9,7 @@ import (
 )
 
 func (a *App) connectRemoteQueue() *amqp.Connection {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial("amqp://" + a.Cfg.Queue.User + ":" + a.Cfg.Queue.Password + "@" + a.Cfg.Queue.Host + ":" + a.Cfg.Queue.Port + "/")
 	if err != nil {
 		log.Fatal(err)
 	}
