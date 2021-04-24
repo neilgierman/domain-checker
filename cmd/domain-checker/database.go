@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // This is a structure for the format of an update entry in the queue
@@ -50,48 +51,37 @@ func (a *App) processPut(item queueEntry) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	log.Print(item)
-	var newEntry = false
-	domainEntry := a.getDomain(item.Domain)
-	// If the counts are -1, then the domain didn't already exist in the database
-	// Set a flag so we know this is a new record and not an update to an
-	//  existing record
-	if domainEntry.DeliveredCount == -1 && domainEntry.BouncedCount == -1 {
-		domainEntry.DeliveredCount = 0
-		domainEntry.BouncedCount = 0
-		newEntry = true
-	}
+
+	filter := bson.M{"domainName":item.Domain}
+
+	var update primitive.M
 	switch item.Action {
 	case "bounced":
-		domainEntry.BouncedCount++
+		update = bson.M{
+			"$inc": bson.M{
+				"bouncedCount":1,
+			},
+		}
 	case "delivered":
-		domainEntry.DeliveredCount++
+		update = bson.M{
+			"$inc": bson.M{
+				"deliveredCount":1,
+			},
+		}
 	default:
 		// We shouldn't really get here but if we do, don't do anything with a DB record
 		log.Print("action {} not implemented", item.Action)
 		return
 	}
-	if !newEntry {
-		update := bson.M{
-			"$set": domainEntry,
-		}
-		result, err := a.WriteDb.Collection("domains").UpdateOne(
-			ctx,
-			bson.M{"_id": domainEntry.ID},
-			update,
-		)
-		if err != nil {
-			log.Print(err)
-		}
-		log.Print(result)
-	} else {
-		result, err := a.WriteDb.Collection("domains").InsertOne(
-			ctx,
-			domainEntry,
-		)
-		if err != nil {
-			log.Print(err)
-		}
-		log.Print(result)
-		
+
+	upsert := true
+	after:= options.After
+	opt := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+		Upsert: &upsert,
 	}
+
+	result := a.WriteDb.Collection("domains").FindOneAndUpdate(ctx, filter, update, &opt)
+
+	log.Print(result)
 }
