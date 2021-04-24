@@ -1,35 +1,59 @@
-#!/bin/sh
+#!/bin/bash
+set -x
 apk update
 apk add curl
+wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
+chmod +x wait-for-it.sh
+echo "Waiting for services to be up"
+./wait-for-it.sh rabbitmq:5672 --timeout=60
+./wait-for-it.sh mongodb:27017 --timeout=60
+./wait-for-it.sh app1:80 --timeout=60
+./wait-for-it.sh app2:80 --timeout=60
 echo "Both of these should return unknown"
-curl http://app1/domains/example.com
-echo
-curl http://app1/domains/exmaple2.com
-echo
+if [ "`curl -s http://app1/domains/example.com`" != "unknown" ]
+then
+   exit 1
+fi
+if [ "`curl -s http://app1/domains/exmaple2.com`" != "unknown" ]
+then
+   exit 1
+fi
 for i in `seq 1 499`
 do
-   curl -X PUT http://app1/events/example.com/delivered &
-   curl -X PUT http://app2/events/example.com/delivered &
-   curl -X PUT http://app2/events/example2.com/delivered &
-   curl -X PUT http://app1/events/example2.com/delivered &
+   curl -s -X PUT http://app1/events/example.com/delivered &
+   curl -s -X PUT http://app2/events/example.com/delivered &
+   curl -s -X PUT http://app2/events/example2.com/delivered &
+   curl -s -X PUT http://app1/events/example2.com/delivered &
 done
 wait $(jobs -p)
 echo "Both of these should still return unknown because we wrote 998 deliveries to example.com and example2.com"
-curl http://app1/domains/example.com
-echo
-curl http://app1/domains/exmaple2.com
-echo
-curl -X PUT http://app1/events/example.com/delivered &
-curl -X PUT http://app2/events/example.com/delivered &
+if [ "`curl -s http://app1/domains/example.com`" != "unknown" ]
+then
+   exit 1
+fi
+if [ "`curl -s http://app1/domains/exmaple2.com`" != "unknown" ]
+then
+   exit 1
+fi
+curl -s -X PUT http://app1/events/example.com/delivered &
+curl -s -X PUT http://app2/events/example.com/delivered &
 wait $(jobs -p)
 echo "Now the first should be catch-all and the second still unknown"
-curl http://app1/domains/example.com
-echo
-curl http://app1/domains/exmaple2.com
-echo
-curl -X PUT http://app1/events/example.com/bounced
+if [ "`curl -s http://app1/domains/example.com`" != "catch-all" ]
+then
+   exit 1
+fi
+if [ "`curl -s http://app1/domains/exmaple2.com`" != "unknown" ]
+then
+   exit 1
+fi
+curl -s -X PUT http://app1/events/example.com/bounced
 echo "Now the first should be not catch-all and the second still unknown"
-curl http://app1/domains/example.com
-echo
-curl http://app1/domains/exmaple2.com
-echo
+if [ "`curl -s http://app1/domains/example.com`" != "not catch-all" ]
+then
+   exit 1
+fi
+if [ "`curl -s http://app1/domains/exmaple2.com`" != "unknown" ]
+then
+   exit 1
+fi

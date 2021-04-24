@@ -26,3 +26,10 @@ services:
         ports:
             - "82:80"
         restart: "on-failure"
+    test:
+        build:
+            context: .
+            dockerfile: Dockerfile-test
+        depends_on: 
+            - app1
+            - app2

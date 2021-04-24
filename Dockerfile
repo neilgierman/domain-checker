@@ -11,4 +11,8 @@ FROM alpine
 COPY --from=builder /build/domainchecker /app/
 COPY cmd/domain-checker/docker-config.json /app/config.json
 WORKDIR /app
-ENTRYPOINT [ "/app/domainchecker" ]
+RUN wget https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh && \
+    apk update && \
+    apk add bash && \
+    chmod +x wait-for-it.sh
+CMD [ "/app/wait-for-it.sh", "rabbitmq:5672", "--timeout=60", "--", "/app/wait-for-it.sh", "mongodb:27017", "--timeout=60","--", "/app/domainchecker" ]
