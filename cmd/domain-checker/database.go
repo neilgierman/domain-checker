@@ -12,8 +12,8 @@ import (
 
 // This is a structure for the format of an update entry in the queue
 type queueEntry struct {
-	action string
-	domain string
+	Action string `json:"action"`
+	Domain string `json:"domain"`
 }
 
 // This is the structure of the document in the MongoDB
@@ -51,7 +51,7 @@ func (a *App) processPut(item queueEntry) {
 	defer cancel()
 	log.Print(item)
 	var newEntry = false
-	domainEntry := a.getDomain(item.domain)
+	domainEntry := a.getDomain(item.Domain)
 	// If the counts are -1, then the domain didn't already exist in the database
 	// Set a flag so we know this is a new record and not an update to an
 	//  existing record
@@ -60,14 +60,14 @@ func (a *App) processPut(item queueEntry) {
 		domainEntry.BouncedCount = 0
 		newEntry = true
 	}
-	switch item.action {
+	switch item.Action {
 	case "bounced":
 		domainEntry.BouncedCount++
 	case "delivered":
 		domainEntry.DeliveredCount++
 	default:
 		// We shouldn't really get here but if we do, don't do anything with a DB record
-		log.Print("action {} not implemented", item.action)
+		log.Print("action {} not implemented", item.Action)
 		return
 	}
 	if !newEntry {

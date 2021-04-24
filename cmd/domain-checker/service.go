@@ -2,6 +2,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -19,8 +20,17 @@ func (a *App) defaultHandler(w http.ResponseWriter, r *http.Request) {
 func (a *App) queueDelivered(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	requestedDomain := vars["domain"]
-	entry := queueEntry{action: "delivered", domain: requestedDomain}
-	a.Queue.PushBack(entry)
+	entry := &queueEntry{Action: "delivered", Domain: requestedDomain}
+	conn := a.connectRemoteQueue()
+	defer conn.Close()
+	ch := a.connectQueueChannel(conn)
+	defer ch.Close()
+	q := a.declareQueue(ch)
+	body, err := json.Marshal(entry)
+	if err != nil {
+		log.Fatal(err)
+	}
+	a.publishMessage(&q, ch, body)
 	w.WriteHeader(http.StatusAccepted)
 }
 
@@ -28,8 +38,17 @@ func (a *App) queueDelivered(w http.ResponseWriter, r *http.Request) {
 func (a *App) queueBounced(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	requestedDomain := vars["domain"]
-	entry := queueEntry{action: "bounced", domain: requestedDomain}
-	a.Queue.PushBack(entry)
+	entry := &queueEntry{Action: "bounced", Domain: requestedDomain}
+	conn := a.connectRemoteQueue()
+	defer conn.Close()
+	ch := a.connectQueueChannel(conn)
+	defer ch.Close()
+	q := a.declareQueue(ch)
+	body, err := json.Marshal(entry)
+	if err != nil {
+		log.Fatal(err)
+	}
+	a.publishMessage(&q, ch, body)
 	w.WriteHeader(http.StatusAccepted)
 }
 

@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
-        "mongodb",
-        "bson"
+        "amqp",
+        "bson",
+        "mongodb"
     ]
 }
