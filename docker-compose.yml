@@ -1,0 +1,28 @@
+version: "3"
+services:
+    rabbitmq:
+        image: rabbitmq:alpine
+        ports:
+            - "5672"
+    mongodb:
+        image: mongo:latest
+        ports:
+            - "27017"
+    app1:
+        build: .
+        image: domainchecker:latest
+        depends_on: 
+            - rabbitmq
+            - mongodb
+        ports:
+            - "81:80"
+        restart: "on-failure"
+    app2:
+        build: .
+        image: domainchecker:latest
+        depends_on: 
+            - rabbitmq
+            - mongodb
+        ports:
+            - "82:80"
+        restart: "on-failure"
