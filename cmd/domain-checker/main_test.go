@@ -16,7 +16,7 @@ var a App
 
 func TestMain(m *testing.M) {
 	a.loadConfig()
-	a.Initialize(a.Cfg.Database.Host,a.Cfg.Database.Port,a.Cfg.Database.Database + "-test")
+	a.Initialize(a.appCfg.Database.Host,a.appCfg.Database.Port,a.appCfg.Database.Database + "-test")
 	go a.queueProcessor()
 	code := m.Run()
 	clearCollection()
@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 func clearCollection() {
 	ctx , cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
-	result, err := a.WriteDb.Collection("domains").DeleteMany(ctx, bson.M{})
+	result, err := a.dbConfig.writeDb.Collection("domains").DeleteMany(ctx, bson.M{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func clearCollection() {
 func createExampleRecord() {
 	ctx , cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
-	result, err := a.WriteDb.Collection("domains").InsertOne(ctx, bson.M{
+	result, err := a.dbConfig.writeDb.Collection("domains").InsertOne(ctx, bson.M{
 		"domainName":"example.com",
 		"bouncedCount":0,
 		"deliveredCount":1000,
@@ -49,7 +49,7 @@ func createExampleRecord() {
 
 func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
-	a.Router.ServeHTTP(rr, req)
+	a.router.ServeHTTP(rr, req)
 	return rr
 }
 

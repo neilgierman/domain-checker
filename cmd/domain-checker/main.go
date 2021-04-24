@@ -11,10 +11,10 @@ func main() {
 	defer cancel()
 	a := App{}
 	a.loadConfig()
-	a.Initialize(a.Cfg.Database.Host, a.Cfg.Database.Port, a.Cfg.Database.Database)
+	a.Initialize(a.appCfg.Database.Host, a.appCfg.Database.Port, a.appCfg.Database.Database)
 	go a.queueProcessor()
 	a.handleRequests()
 	a.Run()
-	defer a.ReadClient.Disconnect(ctx)
-	defer a.WriteClient.Disconnect(ctx)
+	defer a.dbConfig.readClient.Disconnect(ctx)
+	defer a.dbConfig.writeClient.Disconnect(ctx)
 }

@@ -30,7 +30,7 @@ func (a *App) getDomain(domain string) domainEntry {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	var domainResult domainEntry
-	domainsCollection := a.ReadDb.Collection("domains")
+	domainsCollection := a.dbConfig.readDb.Collection("domains")
 	// If we got an error, it could be because there isn't a document with that domain created yet.
 	// Set up a new domainEntry with a specific count for delivered and bounced so the DB code
 	//  knows if this is an insert new instead of update existing.
@@ -81,7 +81,7 @@ func (a *App) processPut(item queueEntry) {
 		Upsert: &upsert,
 	}
 
-	result := a.WriteDb.Collection("domains").FindOneAndUpdate(ctx, filter, update, &opt)
+	result := a.dbConfig.writeDb.Collection("domains").FindOneAndUpdate(ctx, filter, update, &opt)
 
 	log.Print(result)
 }

@@ -14,12 +14,16 @@ import (
 )
 
 type App struct {
-	Router *mux.Router
-	ReadClient *mongo.Client
-	WriteClient *mongo.Client
-	ReadDb *mongo.Database
-	WriteDb *mongo.Database
-	Cfg *Config
+	router *mux.Router
+	dbConfig *DBConfig
+	appCfg *Config
+}
+
+type DBConfig struct {
+	readClient *mongo.Client
+	writeClient *mongo.Client
+	readDb *mongo.Database
+	writeDb *mongo.Database
 }
 
 func (a *App) Initialize(host, port, database string) {
@@ -30,29 +34,29 @@ func (a *App) Initialize(host, port, database string) {
 	//  infrastructure for example to read from a local cache and write to
 	//  a more central instance
 	var err error
-	a.WriteClient, err = mongo.Connect(ctx, options.Client().ApplyURI(
+	a.dbConfig.writeClient, err = mongo.Connect(ctx, options.Client().ApplyURI(
 		"mongodb://" + host + ":" + port,
 	))
 	if err != nil { 
 		log.Fatal(err)
 	}
-	err = a.WriteClient.Ping(ctx, readpref.Primary())
+	err = a.dbConfig.writeClient.Ping(ctx, readpref.Primary())
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.WriteDb = a.WriteClient.Database(database)
+	a.dbConfig.writeDb = a.dbConfig.writeClient.Database(database)
 	
-	a.ReadClient, err = mongo.Connect(ctx, options.Client().ApplyURI(
+	a.dbConfig.readClient, err = mongo.Connect(ctx, options.Client().ApplyURI(
 		"mongodb://" + host + ":" + port,
 	))
 	if err != nil { 
 		log.Fatal(err)
 	}
-	err = a.ReadClient.Ping(ctx, readpref.Primary())
+	err = a.dbConfig.readClient.Ping(ctx, readpref.Primary())
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.ReadDb = a.ReadClient.Database(database)
+	a.dbConfig.readDb = a.dbConfig.readClient.Database(database)
 	log.Print("DB Connected")
 
 	a.handleRequests()
@@ -60,15 +64,15 @@ func (a *App) Initialize(host, port, database string) {
 
 // Sets up the handlers for the different REST endpoints
 func (a *App) handleRequests() {
-	a.Router = mux.NewRouter().StrictSlash(true)
-	a.Router.HandleFunc("/events/{domain}/delivered", a.queueDelivered).Methods("PUT")
-	a.Router.HandleFunc("/events/{domain}/bounced", a.queueBounced).Methods("PUT")
-	a.Router.HandleFunc("/domains/{domain}", a.processGet).Methods("GET")
-	a.Router.PathPrefix("/").HandlerFunc(a.defaultHandler)
+	a.router = mux.NewRouter().StrictSlash(true)
+	a.router.HandleFunc("/events/{domain}/delivered", a.queueDelivered).Methods("PUT")
+	a.router.HandleFunc("/events/{domain}/bounced", a.queueBounced).Methods("PUT")
+	a.router.HandleFunc("/domains/{domain}", a.processGet).Methods("GET")
+	a.router.PathPrefix("/").HandlerFunc(a.defaultHandler)
 }
 
 
 func (a *App) Run() {
 	log.Print("Listening on Port 80")
-	http.ListenAndServe(":80", a.Router)
+	http.ListenAndServe(":80", a.router)
 }

@@ -26,15 +26,17 @@ type Queue struct {
 }
 
 func (a *App) loadConfig() {
-	a.Cfg = &Config{}
+	a.appCfg = &Config{}
 	f, err := os.Open("config.json")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
 	byteValue, _ := ioutil.ReadAll(f)
-	err = json.Unmarshal(byteValue, a.Cfg)
+	err = json.Unmarshal(byteValue, a.appCfg)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	a.dbConfig = &DBConfig{}
 }
