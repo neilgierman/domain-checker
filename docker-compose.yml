@@ -26,3 +26,7 @@ services:
         ports:
             - "82:80"
         restart: "on-failure"
+    client:
+        image: alpine:latest
+        command: tail -f /etc/alpine-release
+        restart: "no"
