@@ -1,4 +1,5 @@
 # Domain-Checker
+[![Build Status](https://github.com/neilgierman/domain-checker/workflows/build/badge.svg)](https://github.com/neilgierman/domain-checker/actions)
 
 Docker:
 * Make sure you have docker and docker-compose installed
