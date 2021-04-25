@@ -26,7 +26,13 @@ jobs:
           docker run --detach --name mongodb --rm -p 27017:27017 mongo:latest
           docker run --detach --name rabbitmq --rm -p 5672:5672 rabbitmq:alpine
           sleep 10
-          go test ./...
+          go test ./... -coverprofile=coverage.txt -covermode=atomic
+      - name: Upload Coverage report
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.txt
+          flags: unittests
+          name: codecov-umbrella
       - name: Integration Test
         run: |
           docker system prune --all --force --volumes
