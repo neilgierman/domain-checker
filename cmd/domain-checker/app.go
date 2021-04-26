@@ -26,7 +26,6 @@ type DBConfig struct {
 	readDb *mongo.Database
 	writeDb *mongo.Database
 	writeDbLock *sync.Mutex
-	lastUpdated time.Time
 }
 
 func (a *App) Initialize(host, port, database string) {

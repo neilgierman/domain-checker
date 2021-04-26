@@ -54,7 +54,6 @@ func (a *App) getDomain(domain string) domainEntry {
 func (a *App) processPut(item queueEntry) {
 	log.Print(item)
 
-	a.dbConfig.writeDbLock.Lock()
 	batchUpdate := mongo.NewUpdateOneModel()
 	batchUpdate.SetFilter(bson.M{"domainName":item.Domain})
 	batchUpdate.SetUpsert(true)
@@ -78,6 +77,7 @@ func (a *App) processPut(item queueEntry) {
 		return
 	}
 
+	a.dbConfig.writeDbLock.Lock()
 	batchUpdates = append(batchUpdates, batchUpdate)
 	log.Print(batchUpdate, " added to batchUpdates")
 	log.Print("batchUpdates is ", len(batchUpdates))
@@ -90,26 +90,27 @@ func (a *App) databaseBatchWriter() {
 	log.Print("Starting DB queue processor")
 
 	a.dbConfig.writeDbLock = &sync.Mutex{}
-	a.dbConfig.lastUpdated = time.Now()
 
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(true)
 
 	for {
-		if time.Since(a.dbConfig.lastUpdated) > (2 * time.Second) && len(batchUpdates) > 0 {
-			a.dbConfig.writeDbLock.Lock()
-			log.Print("Starting batch for ", len(batchUpdates), " records")
-			log.Print(batchUpdates)
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			result, err := a.dbConfig.writeDb.Collection("domains").BulkWrite(ctx, batchUpdates, &bulkOption)
-			if err != nil {
-				log.Print("BulkWrite error: ",err)
+		select {
+		case <- time.After(2 * time.Second):
+			if len(batchUpdates) > 0 {
+				a.dbConfig.writeDbLock.Lock()
+				log.Print("Starting batch for ", len(batchUpdates), " records")
+				log.Print(batchUpdates)
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				result, err := a.dbConfig.writeDb.Collection("domains").BulkWrite(ctx, batchUpdates, &bulkOption)
+				if err != nil {
+					log.Print("BulkWrite error: ",err)
+				}
+				log.Print("result: ", result)
+				batchUpdates = nil
+				a.dbConfig.writeDbLock.Unlock()
 			}
-			log.Print("result: ", result)
-			batchUpdates = nil
-			a.dbConfig.lastUpdated = time.Now()
-			a.dbConfig.writeDbLock.Unlock()
 		}
 	}
 
