@@ -14,7 +14,7 @@ if [ "`curl -s http://app1/domains/example.com`" != "unknown" ]
 then
    exit 1
 fi
-if [ "`curl -s http://app1/domains/exmaple2.com`" != "unknown" ]
+if [ "`curl -s http://app1/domains/example2.com`" != "unknown" ]
 then
    exit 1
 fi
@@ -26,37 +26,38 @@ do
    curl -s -X PUT http://app1/events/example2.com/delivered &
 done
 wait $(jobs -p)
-sleep 1
+sleep 10
 echo "3. Both of these should still return unknown because we wrote 998 deliveries to example.com and example2.com"
 if [ "`curl -s http://app1/domains/example.com`" != "unknown" ]
 then
    exit 1
 fi
-if [ "`curl -s http://app1/domains/exmaple2.com`" != "unknown" ]
+if [ "`curl -s http://app1/domains/example2.com`" != "unknown" ]
 then
    exit 1
 fi
 curl -s -X PUT http://app1/events/example.com/delivered &
 curl -s -X PUT http://app2/events/example.com/delivered &
 wait $(jobs -p)
-sleep 1
+sleep 4
 echo "4. Now the first should be catch-all and the second still unknown"
 if [ "`curl -s http://app1/domains/example.com`" != "catch-all" ]
 then
    exit 1
 fi
-if [ "`curl -s http://app1/domains/exmaple2.com`" != "unknown" ]
+if [ "`curl -s http://app1/domains/example2.com`" != "unknown" ]
 then
    exit 1
 fi
-curl -s -X PUT http://app1/events/example.com/bounced
-sleep 1
+curl -s -X PUT http://app1/events/example.com/bounced &
+wait $(jobs -p)
+sleep 4
 echo "5. Now the first should be not catch-all and the second still unknown"
 if [ "`curl -s http://app1/domains/example.com`" != "not catch-all" ]
 then
    exit 1
 fi
-if [ "`curl -s http://app1/domains/exmaple2.com`" != "unknown" ]
+if [ "`curl -s http://app1/domains/example2.com`" != "unknown" ]
 then
    exit 1
 fi

@@ -17,6 +17,7 @@ var a App
 func TestMain(m *testing.M) {
 	a.loadConfig()
 	a.Initialize(a.appCfg.Database.Host,a.appCfg.Database.Port,a.appCfg.Database.Database + "-test")
+	go a.databaseBatchWriter()
 	go a.queueProcessor()
 	code := m.Run()
 	clearCollection()
@@ -91,7 +92,7 @@ func TestBounceAndReport(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/events/example.com/bounced", nil)
 	resp := executeRequest(req)
 	checkResponseCode(t, http.StatusAccepted, resp.Code)
-	time.Sleep(2 * time.Second)
+	time.Sleep(4 * time.Second)
 	req, _ = http.NewRequest("GET", "/domains/example.com", nil)
 	resp = executeRequest(req)
 	checkResponseCode(t, http.StatusOK, resp.Code)

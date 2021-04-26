@@ -13,6 +13,7 @@ func main() {
 	a.loadConfig()
 	a.Initialize(a.appCfg.Database.Host, a.appCfg.Database.Port, a.appCfg.Database.Database)
 	go a.queueProcessor()
+	go a.databaseBatchWriter()
 	a.handleRequests()
 	a.Run()
 	defer a.dbConfig.readClient.Disconnect(ctx)

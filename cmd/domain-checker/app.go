@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -24,6 +25,8 @@ type DBConfig struct {
 	writeClient *mongo.Client
 	readDb *mongo.Database
 	writeDb *mongo.Database
+	writeDbLock *sync.Mutex
+	lastUpdated time.Time
 }
 
 func (a *App) Initialize(host, port, database string) {
