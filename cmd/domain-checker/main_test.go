@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -80,9 +81,12 @@ func TestUnreportedDomain(t *testing.T) {
 	resp := executeRequest(req)
 
 	checkResponseCode(t, http.StatusOK, resp.Code)
-	body, _ := resp.Body.ReadString('\n')
-	if body != "unknown" {
-		t.Errorf("Expected %s does not match actual %s\n", "unknown", body)
+	var domainResult DomainResult;
+	if err := json.Unmarshal(resp.Body.Bytes(), &domainResult); err != nil {
+		t.Fatal(err)
+	}
+	if domainResult.Status != Unknown.String() {
+		t.Errorf("Expected %s does not match actual %s\n", "unknown", domainResult.Status)
 	}
 }
 
@@ -96,9 +100,12 @@ func TestBounceAndReport(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/domains/example.com", nil)
 	resp = executeRequest(req)
 	checkResponseCode(t, http.StatusOK, resp.Code)
-	body, _ := resp.Body.ReadString('\n')
-	if body != "not catch-all" {
-		t.Errorf("Expected %s does not match actual %s\n", "unknown", body)
+	var domainResult DomainResult;
+	if err := json.Unmarshal(resp.Body.Bytes(), &domainResult); err != nil {
+		t.Fatal(err)
+	}
+	if domainResult.Status != NotCatchAll.String() {
+		t.Errorf("Expected %s does not match actual %s\n", "unknown", domainResult.Status)
 	}
 }
 
@@ -112,9 +119,12 @@ func TestNoBounceAndReport(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/domains/example.com", nil)
 	resp = executeRequest(req)
 	checkResponseCode(t, http.StatusOK, resp.Code)
-	body, _ := resp.Body.ReadString('\n')
-	if body != "catch-all" {
-		t.Errorf("Expected %s does not match actual %s\n", "unknown", body)
+	var domainResult DomainResult;
+	if err := json.Unmarshal(resp.Body.Bytes(), &domainResult); err != nil {
+		t.Fatal(err)
+	}
+	if domainResult.Status != CatchAll.String() {
+		t.Errorf("Expected %s does not match actual %s\n", "unknown", domainResult.Status)
 	}
 }
 
@@ -127,8 +137,11 @@ func TestFirstEntryAndReport(t *testing.T) {
 	req, _ = http.NewRequest("GET", "/domains/example.com", nil)
 	resp = executeRequest(req)
 	checkResponseCode(t, http.StatusOK, resp.Code)
-	body, _ := resp.Body.ReadString('\n')
-	if body != "unknown" {
-		t.Errorf("Expected %s does not match actual %s\n", "unknown", body)
+	var domainResult DomainResult;
+	if err := json.Unmarshal(resp.Body.Bytes(), &domainResult); err != nil {
+		t.Fatal(err)
+	}
+	if domainResult.Status != Unknown.String() {
+		t.Errorf("Expected %s does not match actual %s\n", "unknown", domainResult.Status)
 	}
 }

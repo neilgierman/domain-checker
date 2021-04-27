@@ -3,12 +3,30 @@ package main
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
+
+type DomainStatus int
+
+const (
+	Unknown DomainStatus = iota
+	CatchAll
+	NotCatchAll
+)
+
+func (d DomainStatus) String() string {
+	return [...]string{"unknown", "catch-all", "not catch-all"}[d]
+}
+
+type DomainResult struct {
+	DomainName string
+	Status string
+	DeliveredCount int
+	BouncedCount int
+}
 
 // Everything that is not specifically implemented should just return a 404
 func (a *App) defaultHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,13 +74,26 @@ func (a *App) queueBounced(w http.ResponseWriter, r *http.Request) {
 func (a *App) processGet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	domain := vars["domain"]
-	domainResult := a.getDomain(domain)
-	if domainResult.DeliveredCount < 1000 {
-		io.WriteString(w, "unknown")
-	} else if domainResult.BouncedCount == 0 {
-		io.WriteString(w, "catch-all")
-	} else {
-		io.WriteString(w, "not catch-all")
+	domainEntry := a.getDomain(domain)
+	domainResult := DomainResult{
+		DomainName: domain,
+		BouncedCount: domainEntry.BouncedCount,
+		DeliveredCount: domainEntry.DeliveredCount,
 	}
+	if domainResult.DeliveredCount < 1000 {
+		domainResult.Status = Unknown.String()
+	} else if domainResult.BouncedCount == 0 {
+		domainResult.Status = CatchAll.String()
+	} else {
+		domainResult.Status = NotCatchAll.String()
+	}
+	body, err := json.Marshal(domainResult)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type","application/json")
+	w.Write(body)
 }
 
