@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"time"
 )
 
@@ -11,7 +12,10 @@ func main() {
 	defer cancel()
 	a := App{}
 	a.loadConfig()
-	a.Initialize(a.appCfg.Database.Host, a.appCfg.Database.Port, a.appCfg.Database.Database)
+	err := a.Initialize(a.appCfg.Database.Host, a.appCfg.Database.Port, a.appCfg.Database.Database)
+	if err != nil {
+		log.Fatal(err)
+	}
 	go a.queueProcessor()
 	go a.databaseBatchWriter()
 	a.handleRequests()

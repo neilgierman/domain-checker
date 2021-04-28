@@ -17,7 +17,10 @@ var a App
 
 func TestMain(m *testing.M) {
 	a.loadConfig()
-	a.Initialize(a.appCfg.Database.Host,a.appCfg.Database.Port,a.appCfg.Database.Database + "-test")
+	err := a.Initialize(a.appCfg.Database.Host,a.appCfg.Database.Port,a.appCfg.Database.Database + "-test")
+	if err != nil {
+		log.Fatal(err)
+	}
 	go a.databaseBatchWriter()
 	go a.queueProcessor()
 	code := m.Run()
@@ -58,6 +61,22 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 func checkResponseCode(t *testing.T, expected, actual int) {
 	if expected != actual {
 		t.Errorf("Expected %d does not match actual %d\n", expected, actual)
+	}
+}
+
+func TestBadHost(t *testing.T) {
+	// NOTE: a.LoadConfig is already run in TestMain so a.appCfg should already be populated
+	err := a.Initialize("badhost.local",a.appCfg.Database.Port,a.appCfg.Database.Database + "-test")
+	if err == nil {
+		t.Error("Initialize should have failed with call to badhost but didn't.")
+	}
+}
+
+func TestBadPort(t *testing.T) {
+	// NOTE: a.LoadConfig is already run in TestMain so a.appCfg should already be populated
+	err := a.Initialize(a.appCfg.Database.Host,"0",a.appCfg.Database.Database + "-test")
+	if err == nil {
+		t.Error("Initialize should have failed with call to invalid port but didn't.")
 	}
 }
 

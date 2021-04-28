@@ -28,7 +28,7 @@ type DBConfig struct {
 	writeDbLock *sync.Mutex
 }
 
-func (a *App) Initialize(host, port, database string) {
+func (a *App) Initialize(host, port, database string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	// We are creating a different client for reads and writes
@@ -40,11 +40,11 @@ func (a *App) Initialize(host, port, database string) {
 		"mongodb://" + host + ":" + port,
 	))
 	if err != nil { 
-		log.Fatal(err)
+		return err
 	}
 	err = a.dbConfig.writeClient.Ping(ctx, readpref.Primary())
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	a.dbConfig.writeDb = a.dbConfig.writeClient.Database(database)
 	
@@ -52,16 +52,17 @@ func (a *App) Initialize(host, port, database string) {
 		"mongodb://" + host + ":" + port,
 	))
 	if err != nil { 
-		log.Fatal(err)
+		return err
 	}
 	err = a.dbConfig.readClient.Ping(ctx, readpref.Primary())
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	a.dbConfig.readDb = a.dbConfig.readClient.Database(database)
 	log.Print("DB Connected")
 
 	a.handleRequests()
+	return nil
 }
 
 // Sets up the handlers for the different REST endpoints
