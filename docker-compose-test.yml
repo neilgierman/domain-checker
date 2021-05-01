@@ -26,10 +26,18 @@ services:
         ports:
             - "82:80"
         restart: "on-failure"
+    web:
+        image: nginx
+        ports:
+            - "8080:80"
+        volumes: 
+            - "./nginx.conf:/etc/nginx/nginx.conf"
+        depends_on: 
+            - app1
+            - app2
     test:
         build:
             context: .
             dockerfile: Dockerfile-test
         depends_on: 
-            - app1
-            - app2
+            - web
