@@ -1,0 +1,13 @@
+{
+  "database": {
+    "host": "mongodb",
+    "port": "27017",
+    "database": "domain-checker"
+  },
+  "queue": {
+    "host": "rabbitmq",
+    "user": "guest",
+    "password": "guest",
+    "port": "5672"
+  }
+}

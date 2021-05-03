@@ -1,0 +1,39 @@
+name: build
+on: pull_request
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Container
+        run: |
+          sudo apt update
+          sudo apt -y install apt-transport-https ca-certificates curl software-properties-common gpg
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+          sudo apt update
+          sudo apt -y install docker-ce
+          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          sudo add-apt-repository ppa:longsleep/golang-backports -y
+          sudo apt update
+          sudo apt -y install golang-go
+      - name: Unit Test
+        run: |
+          docker system prune --all --force --volumes
+          docker run --detach --name mongodb --rm -p 27017:27017 mongo:latest
+          docker run --detach --name rabbitmq --rm -p 5672:5672 rabbitmq:alpine
+          sleep 10
+          go test ./... -coverprofile=coverage.txt -covermode=atomic
+      - name: Upload Coverage report
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.txt
+          flags: unittests
+          name: codecov-umbrella
+      - name: Integration Test
+        run: |
+          docker system prune --all --force --volumes
+          docker-compose -f docker-compose-test.yml up --exit-code-from test

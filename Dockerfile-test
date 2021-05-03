@@ -1,0 +1,4 @@
+FROM alpine:latest
+COPY stress-test.sh .
+RUN apk update && apk add bash && chmod +x stress-test.sh
+CMD ["./stress-test.sh"]
